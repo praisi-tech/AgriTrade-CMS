@@ -6,9 +6,8 @@ require_once 'auth.php';
 checkAuth();
 
 // ============================================
-// SECURITY FUNCTIONS  
+// SECURITY FUNCTIONS
 // ============================================
-// Note: CSRF functions are now in auth.php
 
 function validateImageUpload($file) {
     $errors = [];
@@ -18,7 +17,7 @@ function validateImageUpload($file) {
         return $errors;
     }
     
-    $maxSize = 5 * 1024 * 1024;
+    $maxSize = 5 * 1024 * 1024; // 5MB
     if ($file['size'] > $maxSize) {
         $errors[] = "File size exceeds 5MB limit";
     }
@@ -48,35 +47,35 @@ function validateImageUpload($file) {
 
 function sanitizeFilename($filename) {
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-    $randomName = uniqid('product_', true);
+    $randomName = uniqid('gallery_', true);
     return $randomName . '.' . $ext;
 }
 
 // ============================================
-// GET PRODUCT DATA
+// GET GALLERY DATA
 // ============================================
-$product = null;
+$gallery = null;
 $errors = [];
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: xf4-agritrade-cms.php");
+    header("Location: xf4-agritrade-cms.php?tab=gallery");
     exit;
 }
 
-$product_id = intval($_GET['id']);
+$gallery_id = intval($_GET['id']);
 
-$stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
-$stmt->bind_param("i", $product_id);
+$stmt = $conn->prepare("SELECT * FROM gallery WHERE id = ?");
+$stmt->bind_param("i", $gallery_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    setErrorMessage("Product not found");
-    header("Location: xf4-agritrade-cms.php");
+    setErrorMessage("Gallery image not found");
+    header("Location: xf4-agritrade-cms.php?tab=gallery");
     exit;
 }
 
-$product = $result->fetch_assoc();
+$gallery = $result->fetch_assoc();
 $stmt->close();
 
 // ============================================
@@ -87,67 +86,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         die("CSRF token validation failed");
     }
     
-    if (empty($_POST['product_name'])) {
-        $errors[] = "Product name is required";
+    if (empty($_POST['title'])) {
+        $errors[] = "Title is required";
     }
     
     $updateImage = false;
-    $new_image_name = $product['image_name'];
+    $new_image_name = $gallery['image_name'];
     
     // Check if new image is uploaded
-    if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
-        $imageErrors = validateImageUpload($_FILES['product_image']);
+    if (isset($_FILES['gallery_image']) && $_FILES['gallery_image']['error'] === UPLOAD_ERR_OK) {
+        $imageErrors = validateImageUpload($_FILES['gallery_image']);
         if (empty($imageErrors)) {
             $updateImage = true;
-            $new_image_name = sanitizeFilename($_FILES['product_image']['name']);
+            $new_image_name = sanitizeFilename($_FILES['gallery_image']['name']);
         } else {
             $errors = array_merge($errors, $imageErrors);
         }
     }
     
     if (empty($errors)) {
-        $product_name = htmlspecialchars(trim($_POST['product_name']), ENT_QUOTES, 'UTF-8');
-        $category = htmlspecialchars(trim($_POST['category']), ENT_QUOTES, 'UTF-8');
-        $moq = htmlspecialchars(trim($_POST['moq']), ENT_QUOTES, 'UTF-8');
-        $production_capacity = htmlspecialchars(trim($_POST['production_capacity']), ENT_QUOTES, 'UTF-8');
-        $packaging = htmlspecialchars(trim($_POST['packaging']), ENT_QUOTES, 'UTF-8');
-        $shipping_method = htmlspecialchars(trim($_POST['shipping_method']), ENT_QUOTES, 'UTF-8');
+        $title = htmlspecialchars(trim($_POST['title']), ENT_QUOTES, 'UTF-8');
         $description = htmlspecialchars(trim($_POST['description']), ENT_QUOTES, 'UTF-8');
-        $specifications = htmlspecialchars(trim($_POST['specifications']), ENT_QUOTES, 'UTF-8');
-        $advantages = htmlspecialchars(trim($_POST['advantages']), ENT_QUOTES, 'UTF-8');
+        $category = htmlspecialchars(trim($_POST['category']), ENT_QUOTES, 'UTF-8');
+        $display_order = intval($_POST['display_order']);
+        $is_active = isset($_POST['is_active']) ? 1 : 0;
         
-        $stmt = $conn->prepare("UPDATE products SET product_name=?, category=?, moq=?, production_capacity=?, packaging=?, shipping_method=?, description=?, specifications=?, advantages=?, image_name=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE gallery SET title=?, description=?, category=?, display_order=?, is_active=?, image_name=? WHERE id=?");
         
-        $stmt->bind_param("ssssssssssi", 
-            $product_name, 
-            $category, 
-            $moq, 
-            $production_capacity, 
-            $packaging, 
-            $shipping_method, 
+        $stmt->bind_param("sssiisi", 
+            $title, 
             $description, 
-            $specifications, 
-            $advantages,
+            $category, 
+            $display_order,
+            $is_active,
             $new_image_name,
-            $product_id
+            $gallery_id
         );
         
         if ($stmt->execute()) {
             if ($updateImage) {
                 // Delete old image
-                $oldImagePath = "images/" . $product['image_name'];
+                $oldImagePath = "images/gallery/" . $gallery['image_name'];
                 if (file_exists($oldImagePath)) {
                     unlink($oldImagePath);
                 }
                 
                 // Upload new image
-                $target = "images/" . $new_image_name;
-                move_uploaded_file($_FILES['product_image']['tmp_name'], $target);
+                $target = "images/gallery/" . $new_image_name;
+                move_uploaded_file($_FILES['gallery_image']['tmp_name'], $target);
             }
             
-            setSuccessMessage("Product updated successfully!");
-            logSecurityEvent('PRODUCT_UPDATED', 'ID: ' . $product_id);
-            header("Location: xf4-agritrade-cms.php?tab=products");
+            setSuccessMessage("Gallery image updated successfully!");
+            logSecurityEvent('GALLERY_UPDATED', 'ID: ' . $gallery_id);
+            header("Location: xf4-agritrade-cms.php?tab=gallery");
             exit;
         } else {
             $errors[] = "Database error: " . $stmt->error;
@@ -164,7 +155,7 @@ $csrf_token = generateCSRFToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Product | AgriTrade CMS</title>
+    <title>Edit Gallery Image | AgriTrade CMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -278,6 +269,24 @@ $csrf_token = generateCSRFToken();
             color: #9ca3af;
         }
         
+        .form-check-input {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 5px;
+        }
+        
+        .form-check-input:checked {
+            background-color: #2c5e1a;
+            border-color: #2c5e1a;
+        }
+        
+        .form-check-label {
+            margin-left: 8px;
+            font-weight: 500;
+            color: #4b5563;
+        }
+        
         /* Button Styles */
         .btn {
             padding: 10px 20px;
@@ -326,6 +335,23 @@ $csrf_token = generateCSRFToken();
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
+        /* Badge */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+        }
+        
+        .badge.bg-success {
+            background: #10b981 !important;
+        }
+        
+        .badge.bg-warning {
+            background: #f59e0b !important;
+        }
+        
         small.text-muted {
             color: #9ca3af !important;
             font-size: 12px;
@@ -354,12 +380,12 @@ $csrf_token = generateCSRFToken();
     <div class="admin-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h2>Edit Product</h2>
-                <p class="mb-0">Update product information and details</p>
+                <h2>Edit Gallery Image</h2>
+                <p class="mb-0">Update gallery image details</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="xf4-agritrade-cms.php?tab=products" class="btn btn-outline-secondary">
-                    ← Back to Products
+                <a href="xf4-agritrade-cms.php?tab=gallery" class="btn btn-outline-secondary">
+                    ← Back to Gallery
                 </a>
             </div>
         </div>
@@ -380,103 +406,95 @@ $csrf_token = generateCSRFToken();
 
     <!-- Edit Form -->
     <div class="card p-4">
-        <form action="edit-product.php?id=<?php echo $product_id; ?>" method="POST" enctype="multipart/form-data">
+        <form action="edit-gallery.php?id=<?php echo $gallery_id; ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
             
             <div class="row g-4">
                 <!-- Left Column -->
                 <div class="col-lg-8">
-                    <h4>Product Information</h4>
+                    <h4>Gallery Information</h4>
                     <hr>
                     
                     <div class="mb-3">
-                        <label class="form-label">Product Name *</label>
-                        <input type="text" name="product_name" class="form-control" 
-                               value="<?php echo htmlspecialchars($product['product_name']); ?>" 
-                               placeholder="e.g. Whole Nutmeg" required maxlength="255">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Category</label>
-                        <input type="text" name="category" class="form-control" 
-                               value="<?php echo htmlspecialchars($product['category']); ?>" 
-                               placeholder="e.g. Spices" maxlength="100">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Specifications</label>
-                        <textarea name="specifications" class="form-control" rows="3" 
-                                  placeholder="e.g. Moisture <12%, Grade ABCD" maxlength="1000"><?php echo htmlspecialchars($product['specifications']); ?></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Key Advantages</label>
-                        <textarea name="advantages" class="form-control" rows="3" 
-                                  placeholder="e.g. Sourced from volcanic soil" maxlength="1000"><?php echo htmlspecialchars($product['advantages']); ?></textarea>
-                    </div>
-                    
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Production Capacity</label>
-                            <input type="text" name="production_capacity" class="form-control" 
-                                   value="<?php echo htmlspecialchars($product['production_capacity']); ?>" 
-                                   placeholder="50 Tons/Month" maxlength="100">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">MOQ</label>
-                            <input type="text" name="moq" class="form-control" 
-                                   value="<?php echo htmlspecialchars($product['moq']); ?>" 
-                                   placeholder="1000 kg" maxlength="100">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3 mt-3">
-                        <label class="form-label">Packaging</label>
-                        <input type="text" name="packaging" class="form-control" 
-                               value="<?php echo htmlspecialchars($product['packaging']); ?>" 
-                               placeholder="25kg PP Bags" maxlength="255">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Shipping Method</label>
-                        <input type="text" name="shipping_method" class="form-control" 
-                               value="<?php echo htmlspecialchars($product['shipping_method']); ?>" 
-                               placeholder="Sea Freight FOB" maxlength="255">
+                        <label class="form-label">Title *</label>
+                        <input type="text" name="title" class="form-control" 
+                               value="<?php echo htmlspecialchars($gallery['title']); ?>" 
+                               placeholder="e.g. Quality Control Lab" required maxlength="255">
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="4" 
-                                  placeholder="Detailed product description..." maxlength="2000"><?php echo htmlspecialchars($product['description']); ?></textarea>
+                        <textarea name="description" class="form-control" rows="3" 
+                                  placeholder="Brief description..." maxlength="500"><?php echo htmlspecialchars($gallery['description']); ?></textarea>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="Facility" <?php echo $gallery['category'] == 'Facility' ? 'selected' : ''; ?>>Facility</option>
+                                <option value="Process" <?php echo $gallery['category'] == 'Process' ? 'selected' : ''; ?>>Process</option>
+                                <option value="Logistics" <?php echo $gallery['category'] == 'Logistics' ? 'selected' : ''; ?>>Logistics</option>
+                                <option value="Quality Control" <?php echo $gallery['category'] == 'Quality Control' ? 'selected' : ''; ?>>Quality Control</option>
+                                <option value="General" <?php echo $gallery['category'] == 'General' ? 'selected' : ''; ?>>General</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Display Order</label>
+                            <input type="number" name="display_order" class="form-control" 
+                                   value="<?php echo htmlspecialchars($gallery['display_order']); ?>" min="0">
+                            <small class="text-muted">Lower appears first</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 mt-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="is_active" 
+                                   <?php echo $gallery['is_active'] ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="is_active">
+                                Active (visible on website)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Current Status</label>
+                        <div>
+                            <?php if ($gallery['is_active']): ?>
+                                <span class="badge bg-success">Active - Visible on Website</span>
+                            <?php else: ?>
+                                <span class="badge bg-warning">Inactive - Hidden from Website</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <h4>Product Image</h4>
+                    <h4>Gallery Image</h4>
                     <hr>
                     
                     <div class="mb-3">
                         <label class="form-label">Current Image</label>
                         <div class="image-preview">
-                            <img src="images/<?php echo htmlspecialchars($product['image_name']); ?>" 
+                            <img src="images/gallery/<?php echo htmlspecialchars($gallery['image_name']); ?>" 
                                  class="img-fluid" 
-                                 alt="<?php echo htmlspecialchars($product['product_name']); ?>"
+                                 alt="<?php echo htmlspecialchars($gallery['title']); ?>"
                                  style="max-height: 250px;">
                         </div>
                     </div>
                     
                     <div class="mb-4">
                         <label class="form-label">Upload New Image (Optional)</label>
-                        <input type="file" name="product_image" class="form-control" accept="image/*">
+                        <input type="file" name="gallery_image" class="form-control" accept="image/*">
                         <small class="text-muted">Max 5MB (JPG, PNG, GIF, WEBP). Leave empty to keep current image.</small>
                     </div>
                     
                     <div class="d-grid gap-2">
                         <button type="submit" name="update" class="btn btn-primary">
-                            Update Product
+                            Update Gallery
                         </button>
-                        <a href="xf4-agritrade-cms.php?tab=products" class="btn btn-outline-secondary">
+                        <a href="xf4-agritrade-cms.php?tab=gallery" class="btn btn-outline-secondary">
                             Cancel
                         </a>
                     </div>

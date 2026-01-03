@@ -9,7 +9,7 @@
         
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="css/index-style.css">
 
     </head>
 
@@ -192,33 +192,63 @@
                 </div>
                 
                 <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm">
-                            <img src="https://media.istockphoto.com/id/1500771927/photo/big-warehouse.webp?a=1&b=1&s=612x612&w=0&k=20&c=-J7YJ24e_YFAH-SiikJzf8W93H5xbHxKi7YkmtCfDXE=" class="card-img-top rounded" alt="Warehouse facility" style="height: 250px; object-fit: cover;">
-                            <div class="card-body p-2 text-center">
-                                <small class="fw-bold">Processing & Storage Warehouse</small>
+                    <?php
+                    // Fetch active gallery images from database
+                    $gallery_sql = "SELECT * FROM gallery WHERE is_active = 1 ORDER BY display_order ASC, id DESC";
+                    $gallery_result = mysqli_query($conn, $gallery_sql);
+                    
+                    if (mysqli_num_rows($gallery_result) > 0) {
+                        while($gallery = mysqli_fetch_assoc($gallery_result)) {
+                            $title = htmlspecialchars($gallery['title']);
+                            $image = htmlspecialchars($gallery['image_name']);
+                            ?>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm">
+                                    <img src="images/gallery/<?php echo $image; ?>" 
+                                         class="card-img-top rounded" 
+                                         alt="<?php echo $title; ?>" 
+                                         style="height: 250px; object-fit: cover;">
+                                    <div class="card-body p-2 text-center">
+                                        <small class="fw-bold"><?php echo $title; ?></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php
+                        }
+                    } else {
+                        // Fallback to default images if no gallery items
+                        ?>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <img src="https://media.istockphoto.com/id/1500771927/photo/big-warehouse.webp?a=1&b=1&s=612x612&w=0&k=20&c=-J7YJ24e_YFAH-SiikJzf8W93H5xbHxKi7YkmtCfDXE=" class="card-img-top rounded" alt="Warehouse facility" style="height: 250px; object-fit: cover;">
+                                <div class="card-body p-2 text-center">
+                                    <small class="fw-bold">Processing & Storage Warehouse</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm">
-                            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80" class="card-img-top rounded" alt="Quality Control" style="height: 250px; object-fit: cover;">
-                            <div class="card-body p-2 text-center">
-                                <small class="fw-bold">Strict Quality Inspection</small>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80" class="card-img-top rounded" alt="Quality Control" style="height: 250px; object-fit: cover;">
+                                <div class="card-body p-2 text-center">
+                                    <small class="fw-bold">Strict Quality Inspection</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm">
-                            <img src="https://plus.unsplash.com/premium_photo-1661880749508-71d9e7170508?blend=000000&blend-alpha=10&blend-mode=normal&blend-w=1&crop=faces%2Cedges&h=630&mark=https:%2F%2Fimages.unsplash.com%2Fopengraph%2Flogo.png&mark-align=top%2Cleft&mark-pad=50&mark-w=64&w=1200&auto=format&fit=crop&q=60&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzAyNTAzNDY3fA&ixlib=rb-4.0.3" class="card-img-top rounded" alt="Stuffing process" style="height: 250px; object-fit: cover;">
-                            <div class="card-body p-2 text-center">
-                                <small class="fw-bold">Export Stuffing & Logistics</small>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <img src="https://plus.unsplash.com/premium_photo-1661880749508-71d9e7170508?blend=000000&blend-alpha=10&blend-mode=normal&blend-w=1&crop=faces%2Cedges&h=630&mark=https:%2F%2Fimages.unsplash.com%2Fopengraph%2Flogo.png&mark-align=top%2Cleft&mark-pad=50&mark-w=64&w=1200&auto=format&fit=crop&q=60&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzAyNTAzNDY3fA&ixlib=rb-4.0.3" class="card-img-top rounded" alt="Stuffing process" style="height: 250px; object-fit: cover;">
+                                <div class="card-body p-2 text-center">
+                                    <small class="fw-bold">Export Stuffing & Logistics</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        <?php
+                    }
+                    ?>
                 </div>
             </div>
         </section>
+
 
         <section id="faq" class="py-5 bg-light">
             <div class="container py-4">

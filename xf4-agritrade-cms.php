@@ -24,7 +24,15 @@ function validateImageUpload($file) {
         $errors[] = "File size exceeds 5MB limit";
     }
     
-    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $allowedMimes = [
+    'image/jpeg', 
+    'image/jpg', 
+    'image/pjpeg', 
+    'image/x-png', 
+    'image/png', 
+    'image/gif', 
+    'image/webp'
+];
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mimeType = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
@@ -84,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_product'])) {
     }
     $stmt->close();
     
-    header("Location: admin.php?tab=products");
+    header("Location: xf4-agritrade-cms.php?tab=products");
     exit;
 }
 
@@ -135,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_product'])) {
             if (move_uploaded_file($_FILES['product_image']['tmp_name'], $target)) {
                 setSuccessMessage("Product added successfully!");
                 logSecurityEvent('PRODUCT_ADDED', 'Name: ' . $product_name);
-                header("Location: admin.php?tab=products");
+                header("Location: xf4-agritrade-cms.php?tab=products");
                 exit;
             } else {
                 $errors[] = "Product added, but image upload failed.";
@@ -178,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_gallery'])) {
     }
     $stmt->close();
     
-    header("Location: admin.php?tab=gallery");
+    header("Location: xf4-agritrade-cms.php?tab=gallery");
     exit;
 }
 
@@ -228,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_gallery'])) {
             if (move_uploaded_file($_FILES['gallery_image']['tmp_name'], $target)) {
                 setSuccessMessage("Gallery image added successfully!");
                 logSecurityEvent('GALLERY_ADDED', 'Title: ' . $title);
-                header("Location: admin.php?tab=gallery");
+                header("Location: xf4-agritrade-cms.php?tab=gallery");
                 exit;
             } else {
                 $errors[] = "Gallery added, but image upload failed.";
@@ -261,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_gallery'])) {
     }
     $stmt->close();
     
-    header("Location: admin.php?tab=gallery");
+    header("Location: xf4-agritrade-cms.php?tab=gallery");
     exit;
 }
 
@@ -277,37 +285,420 @@ $current_tab = $_GET['tab'] ?? 'products';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel | AgriTrade CMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .nav-tabs .nav-link {
-            color: #666;
-            font-weight: 500;
+        * {
+            font-family: 'Inter', sans-serif;
         }
-        .nav-tabs .nav-link.active {
-            color: #0d6efd;
+        
+        body {
+            background: linear-gradient(135deg, #f0f4f0 0%, #e8f2e8 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Header Styles */
+        .admin-header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px 32px;
+            box-shadow: 0 2px 12px rgba(44, 94, 26, 0.08);
+            margin-bottom: 24px;
+            border-left: 4px solid #2c5e1a;
+        }
+        
+        .admin-header h2 {
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0;
+            font-size: 28px;
+        }
+        
+        .admin-header p {
+            color: #6b7280;
+            margin: 4px 0 0 0;
+            font-size: 14px;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border: none;
+            border-radius: 10px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: #f0fdf4;
+            color: #166534;
+            border-left-color: #22c55e;
+        }
+        
+        .alert-danger {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left-color: #ef4444;
+        }
+        
+        .alert .btn-close {
+            opacity: 0.4;
+        }
+        
+        /* Tab Styles */
+        .nav-tabs {
+            border: none;
+            background: white;
+            border-radius: 10px;
+            padding: 6px;
+            box-shadow: 0 2px 8px rgba(44, 94, 26, 0.06);
+            margin-bottom: 24px;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6b7280;
             font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: #2c5e1a;
+            background: #f0fdf4;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: #2c5e1a;
+            color: white;
+            box-shadow: 0 2px 8px rgba(44, 94, 26, 0.3);
+        }
+        
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(44, 94, 26, 0.06);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(44, 94, 26, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .card h4 {
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 20px;
+        }
+        
+        .card hr {
+            margin: 16px 0;
+            opacity: 0.1;
+            border-color: #2c5e1a;
+        }
+        
+        /* Form Styles */
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #2c5e1a;
+            box-shadow: 0 0 0 4px rgba(44, 94, 26, 0.1);
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+        }
+        
+        .form-control::placeholder {
+            color: #9ca3af;
+        }
+        
+        .form-check-input {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 5px;
+        }
+        
+        .form-check-input:checked {
+            background-color: #2c5e1a;
+            border-color: #2c5e1a;
+        }
+        
+        .form-check-label {
+            margin-left: 8px;
+            font-weight: 500;
+            color: #4b5563;
+        }
+        
+        /* Button Styles */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: #2c5e1a;
+            color: white;
+            box-shadow: 0 2px 8px rgba(44, 94, 26, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: #1e4012;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(44, 94, 26, 0.4);
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-outline-secondary {
+            border: 2px solid #e5e7eb;
+            color: #6b7280;
+            background: white;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #4b5563;
+        }
+        
+        .btn-outline-danger {
+            border: 2px solid #fee2e2;
+            color: #dc2626;
+            background: white;
+        }
+        
+        .btn-outline-danger:hover {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+        
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 13px;
+        }
+        
+        /* Table Styles */
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead {
+            background: #2c5e1a;
+        }
+        
+        .table thead th {
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px;
+            border: none;
+        }
+        
+        .table tbody td {
+            padding: 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table img {
+            object-fit: cover;
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Badge Styles */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+        }
+        
+        .badge.bg-light {
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .badge.bg-info {
+            background: #06b6d4 !important;
+        }
+        
+        .badge.bg-secondary {
+            background: #6b7280 !important;
+        }
+        
+        .badge.bg-success {
+            background: #10b981 !important;
+        }
+        
+        .badge.bg-warning {
+            background: #f59e0b !important;
+        }
+        
+        /* Action Buttons */
+        .action-btns {
+            white-space: nowrap;
+        }
+        
+        .action-btns form {
+            display: inline-block;
+        }
+        
+        /* Small text */
+        small.text-muted {
+            color: #9ca3af !important;
+            font-size: 12px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #2c5e1a;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1e4012;
+        }
+        
+        /* Icon styles */
+        .icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            vertical-align: text-bottom;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-header {
+                padding: 20px;
+            }
+            
+            .admin-header h2 {
+                font-size: 24px;
+            }
+            
+            body {
+                padding: 10px 0;
+            }
         }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<div class="container my-5">
+<div class="container admin-container">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-0">Admin Panel</h2>
-            <p class="text-muted mb-0">Manage Products & Gallery</p>
-        </div>
-        <div>
-            <a href="index.php" class="btn btn-outline-secondary me-2" target="_blank">View Website</a>
-            <a href="logout.php" class="btn btn-outline-danger">Logout</a>
+    <div class="admin-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2>Admin Panel</h2>
+                <p class="mb-0">Manage Products & Gallery</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="index.php" class="btn btn-outline-secondary" target="_blank">
+                    View Website
+                </a>
+                <a href="logout.php" class="btn btn-outline-danger">
+                    Logout
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Success Message -->
     <?php if ($success_message): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($success_message); ?>
+            <strong>Success!</strong> <?php echo htmlspecialchars($success_message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -315,7 +706,7 @@ $current_tab = $_GET['tab'] ?? 'products';
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Error:</strong>
-            <ul class="mb-0">
+            <ul class="mb-0 mt-2" style="padding-left: 20px;">
                 <?php foreach($errors as $error): ?>
                     <li><?php echo htmlspecialchars($error); ?></li>
                 <?php endforeach; ?>
@@ -325,17 +716,17 @@ $current_tab = $_GET['tab'] ?? 'products';
     <?php endif; ?>
 
     <!-- Tabs -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
+    <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <a class="nav-link <?php echo $current_tab === 'products' ? 'active' : ''; ?>" 
-               href="admin.php?tab=products">
-                📦 Products
+               href="xf4-agritrade-cms.php?tab=products">
+                Products
             </a>
         </li>
         <li class="nav-item" role="presentation">
             <a class="nav-link <?php echo $current_tab === 'gallery' ? 'active' : ''; ?>" 
-               href="admin.php?tab=gallery">
-                🖼️ Gallery
+               href="xf4-agritrade-cms.php?tab=gallery">
+                Gallery
             </a>
         </li>
     </ul>
@@ -345,74 +736,76 @@ $current_tab = $_GET['tab'] ?? 'products';
         
         <!-- PRODUCTS TAB -->
         <?php if ($current_tab === 'products'): ?>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card shadow-sm p-4">
-                    <h4 class="fw-bold">Add New Product</h4>
-                    <p class="text-muted small">Fill in all export details</p>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card p-4">
+                    <h4>Add New Product</h4>
+                    <p class="text-muted small mb-0">Fill in all export details</p>
                     <hr>
-                    <form action="admin.php?tab=products" method="POST" enctype="multipart/form-data">
+                    <form action="xf4-agritrade-cms.php?tab=products" method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         
                         <div class="mb-3">
-                            <label class="fw-bold small">Product Name *</label>
-                            <input type="text" name="product_name" class="form-control" required maxlength="255">
+                            <label class="form-label">Product Name *</label>
+                            <input type="text" name="product_name" class="form-control" placeholder="e.g. Whole Nutmeg" required maxlength="255">
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Category</label>
+                            <label class="form-label">Category</label>
                             <input type="text" name="category" class="form-control" placeholder="e.g. Spices" maxlength="100">
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Specifications</label>
-                            <textarea name="specifications" class="form-control" rows="2" placeholder="e.g. Moisture <12%" maxlength="1000"></textarea>
+                            <label class="form-label">Specifications</label>
+                            <textarea name="specifications" class="form-control" rows="2" placeholder="e.g. Moisture <12%, Grade ABCD" maxlength="1000"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Key Advantages</label>
-                            <textarea name="advantages" class="form-control" rows="2" placeholder="e.g. Volcanic soil" maxlength="1000"></textarea>
+                            <label class="form-label">Key Advantages</label>
+                            <textarea name="advantages" class="form-control" rows="2" placeholder="e.g. Sourced from volcanic soil" maxlength="1000"></textarea>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="fw-bold small">Capacity</label>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label">Capacity</label>
                                 <input type="text" name="production_capacity" class="form-control" placeholder="50 Tons/Month" maxlength="100">
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="fw-bold small">MOQ</label>
-                                <input type="text" name="moq" class="form-control" placeholder="1000 kgs" maxlength="100">
+                            <div class="col-6">
+                                <label class="form-label">MOQ</label>
+                                <input type="text" name="moq" class="form-control" placeholder="1000 kg" maxlength="100">
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="fw-bold small">Packaging</label>
+                        <div class="mb-3 mt-3">
+                            <label class="form-label">Packaging</label>
                             <input type="text" name="packaging" class="form-control" placeholder="25kg PP Bags" maxlength="255">
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Shipping Method</label>
+                            <label class="form-label">Shipping Method</label>
                             <input type="text" name="shipping_method" class="form-control" placeholder="Sea Freight FOB" maxlength="255">
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Description</label>
-                            <textarea name="description" class="form-control" rows="3" maxlength="2000"></textarea>
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Detailed product description..." maxlength="2000"></textarea>
                         </div>
-                        <div class="mb-3">
-                            <label class="fw-bold small">Product Image *</label>
+                        <div class="mb-4">
+                            <label class="form-label">Product Image *</label>
                             <input type="file" name="product_image" class="form-control" accept="image/*" required>
-                            <small class="text-muted">Max 5MB</small>
+                            <small class="text-muted">Max 5MB (JPG, PNG, GIF, WEBP)</small>
                         </div>
-                        <button type="submit" name="submit_product" class="btn btn-primary w-100 fw-bold">Add Product</button>
+                        <button type="submit" name="submit_product" class="btn btn-primary w-100">
+                            Add Product
+                        </button>
                     </form>
                 </div>
             </div>
 
-            <div class="col-md-8">
-                <div class="card shadow-sm p-4">
-                    <h4 class="fw-bold">Products List</h4>
-                    <div class="table-responsive">
-                        <table class="table table-hover mt-3">
-                            <thead class="table-dark">
+            <div class="col-lg-8">
+                <div class="card p-4">
+                    <h4>Products List</h4>
+                    <div class="table-responsive mt-3">
+                        <table class="table">
+                            <thead>
                                 <tr>
                                     <th>Image</th>
                                     <th>Name</th>
                                     <th>Category</th>
-                                    <th class="text-center">Action</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -421,6 +814,10 @@ $current_tab = $_GET['tab'] ?? 'products';
                                 $stmt->execute();
                                 $result = $stmt->get_result();
                                 
+                                if ($result->num_rows === 0) {
+                                    echo "<tr><td colspan='4' class='text-center text-muted py-5'>No products added yet</td></tr>";
+                                }
+                                
                                 while($row = $result->fetch_assoc()) {
                                     $id = htmlspecialchars($row['id']);
                                     $name = htmlspecialchars($row['product_name']);
@@ -428,10 +825,10 @@ $current_tab = $_GET['tab'] ?? 'products';
                                     $img = htmlspecialchars($row['image_name']);
                                     
                                     echo "<tr>";
-                                    echo "<td><img src='images/{$img}' width='60' height='40' class='object-fit-cover'></td>";
+                                    echo "<td><img src='images/{$img}' width='70' height='50' alt='{$name}'></td>";
                                     echo "<td class='fw-semibold'>{$name}</td>";
-                                    echo "<td><span class='badge bg-light text-dark border'>{$cat}</span></td>";
-                                    echo "<td class='text-center'>";
+                                    echo "<td><span class='badge bg-light'>{$cat}</span></td>";
+                                    echo "<td class='text-center action-btns'>";
                                     echo "<a href='edit-product.php?id={$id}' class='btn btn-warning btn-sm me-1'>Edit</a>";
                                     echo "<form method='POST' style='display:inline;' onsubmit='return confirm(\"Delete this product?\")'>";
                                     echo "<input type='hidden' name='csrf_token' value='{$csrf_token}'>";
@@ -453,26 +850,26 @@ $current_tab = $_GET['tab'] ?? 'products';
 
         <!-- GALLERY TAB -->
         <?php if ($current_tab === 'gallery'): ?>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card shadow-sm p-4">
-                    <h4 class="fw-bold">Add Gallery Image</h4>
-                    <p class="text-muted small">Upload facility photos</p>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card p-4">
+                    <h4>Add Gallery Image</h4>
+                    <p class="text-muted small mb-0">Upload facility photos</p>
                     <hr>
-                    <form action="admin.php?tab=gallery" method="POST" enctype="multipart/form-data">
+                    <form action="xf4-agritrade-cms.php?tab=gallery" method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         
                         <div class="mb-3">
-                            <label class="fw-bold small">Title *</label>
-                            <input type="text" name="title" class="form-control" required maxlength="255">
+                            <label class="form-label">Title *</label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g. Quality Control Lab" required maxlength="255">
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Description</label>
-                            <textarea name="description" class="form-control" rows="2" maxlength="500"></textarea>
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Brief description..." maxlength="500"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Category</label>
-                            <select name="gallery_category" class="form-control">
+                            <label class="form-label">Category</label>
+                            <select name="gallery_category" class="form-select">
                                 <option value="Facility">Facility</option>
                                 <option value="Process">Process</option>
                                 <option value="Logistics">Logistics</option>
@@ -481,37 +878,41 @@ $current_tab = $_GET['tab'] ?? 'products';
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Display Order</label>
-                            <input type="number" name="display_order" class="form-control" value="0" min="0">
-                            <small class="text-muted">Lower = appears first</small>
+                            <label class="form-label">Display Order</label>
+                            <input type="number" name="display_order" class="form-control" value="0" min="0" placeholder="0">
+                            <small class="text-muted">Lower number appears first</small>
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold small">Gallery Image *</label>
+                            <label class="form-label">Gallery Image *</label>
                             <input type="file" name="gallery_image" class="form-control" accept="image/*" required>
-                            <small class="text-muted">Max 5MB</small>
+                            <small class="text-muted">Max 5MB (JPG, PNG, GIF, WEBP)</small>
                         </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
-                            <label class="form-check-label small" for="is_active">Active (visible)</label>
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
+                                <label class="form-check-label" for="is_active">Active (visible on website)</label>
+                            </div>
                         </div>
-                        <button type="submit" name="submit_gallery" class="btn btn-primary w-100 fw-bold">Add Image</button>
+                        <button type="submit" name="submit_gallery" class="btn btn-primary w-100">
+                            Add Image
+                        </button>
                     </form>
                 </div>
             </div>
 
-            <div class="col-md-8">
-                <div class="card shadow-sm p-4">
-                    <h4 class="fw-bold">Gallery Images</h4>
-                    <div class="table-responsive">
-                        <table class="table table-hover mt-3">
-                            <thead class="table-dark">
+            <div class="col-lg-8">
+                <div class="card p-4">
+                    <h4>Gallery Images</h4>
+                    <div class="table-responsive mt-3">
+                        <table class="table">
+                            <thead>
                                 <tr>
                                     <th>Image</th>
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>Order</th>
                                     <th>Status</th>
-                                    <th class="text-center">Action</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -519,6 +920,10 @@ $current_tab = $_GET['tab'] ?? 'products';
                                 $stmt = $conn->prepare("SELECT id, title, image_name, category, display_order, is_active FROM gallery ORDER BY display_order ASC, id DESC");
                                 $stmt->execute();
                                 $result = $stmt->get_result();
+                                
+                                if ($result->num_rows === 0) {
+                                    echo "<tr><td colspan='6' class='text-center text-muted py-5'>No gallery images yet</td></tr>";
+                                }
                                 
                                 while($row = $result->fetch_assoc()) {
                                     $id = htmlspecialchars($row['id']);
@@ -529,7 +934,7 @@ $current_tab = $_GET['tab'] ?? 'products';
                                     $active = $row['is_active'];
                                     
                                     echo "<tr>";
-                                    echo "<td><img src='images/gallery/{$img}' width='60' height='40' class='object-fit-cover rounded'></td>";
+                                    echo "<td><img src='images/gallery/{$img}' width='70' height='50' alt='{$title}'></td>";
                                     echo "<td class='fw-semibold'>{$title}</td>";
                                     echo "<td><span class='badge bg-info'>{$cat}</span></td>";
                                     echo "<td><span class='badge bg-secondary'>{$order}</span></td>";
@@ -537,10 +942,10 @@ $current_tab = $_GET['tab'] ?? 'products';
                                     if ($active) {
                                         echo "<span class='badge bg-success'>Active</span>";
                                     } else {
-                                        echo "<span class='badge bg-warning text-dark'>Inactive</span>";
+                                        echo "<span class='badge bg-warning'>Inactive</span>";
                                     }
                                     echo "</td>";
-                                    echo "<td class='text-center'>";
+                                    echo "<td class='text-center action-btns'>";
                                     
                                     // Toggle button
                                     echo "<form method='POST' style='display:inline;' class='me-1'>";

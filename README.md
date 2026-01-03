@@ -4,7 +4,6 @@ A security-focused Content Management System designed for agricultural export co
 
 AgriTrade CMS demonstrates how application security principles can be embedded directly into product design, not added as an afterthought.
 
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue.svg)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-orange.svg)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg)
@@ -27,7 +26,6 @@ AgriTrade CMS demonstrates how application security principles can be embedded d
 - [Database Design](#database-design)
 - [Documentation](#documentation)
 - [Author](#author)
-- [License](#license)
 
 ---
 
@@ -300,14 +298,10 @@ Developer focused on application security, defensive coding, and building secure
 This project reflects a security mindset: understand the threat, design the defense, and take ownership of product security.
 
 GitHub: [https://github.com/praisi-tech](https://github.com/praisi-tech)
+Linkedin: [www.linkedin.com/in/praisiliapandoh](www.linkedin.com/in/praisiliapandoh)
 
 ---
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
 
 ## Final Note
 

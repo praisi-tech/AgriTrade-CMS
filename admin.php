@@ -265,6 +265,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_gallery'])) {
     exit;
 }
 
+// ============================================
+// HANDLE CHANGE PASSWORD (Security Update)
+// ============================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+    if (!verifyCSRFToken($_POST['csrf_token'])) {
+        die("CSRF token validation failed");
+    }
+
+    $new_password = $_POST['new_password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    if (strlen($new_password) < 6) {
+        $errors[] = "Password must be at least 6 characters";
+    } elseif ($new_password !== $confirm_password) {
+        $errors[] = "Passwords do not match";
+    } else {
+        $hashed_pw = password_hash($new_password, PASSWORD_BCRYPT);
+        $stmt = $conn->prepare("UPDATE users SET password = ? WHERE username = 'admin'");
+        $stmt->bind_param("s", $hashed_pw);
+        
+        if ($stmt->execute()) {
+            setSuccessMessage("Password updated successfully!");
+            logSecurityEvent('PASSWORD_CHANGED', 'User: admin');
+        } else {
+            $errors[] = "Failed to update password";
+        }
+        $stmt->close();
+    }
+}
+
 $csrf_token = generateCSRFToken();
 $success_message = getSuccessMessage();
 $current_tab = $_GET['tab'] ?? 'products';
